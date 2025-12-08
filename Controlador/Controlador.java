@@ -539,4 +539,65 @@ public class Controlador {
         }
         vista.pedirEnter();
     }
+ private void turnoMonstruo(Monstruo m) {
+        if (m.getHP() <= 0) return;
+        
+        String nombreMonstruo = displayNombre(m);
+        vista.mostrarTurnoActual(contadorTurnos, nombreMonstruo);
+        
+        PersonajeJugable objetivo = seleccionarHeroeAleatorio();
+        Estado estadoAntes = m.getEstado();
+        int hpAntes = objetivo != null ? objetivo.getHP() : 0;
+
+        if (objetivo != null) {
+            String estadoActual = m.getEstado() != null ? m.getEstado().toString() : "";
+            int hpMonstruoAntes = m.getHP();
+            m.tomarTurno(objetivo, 1);
+
+            int hpDespues = objetivo.getHP();
+            int danio = Math.max(0, hpAntes - hpDespues);
+            if (danio > 0) {
+                vista.mostrarAtaque(displayNombre(m) + " (" + estadoActual + ")", m.getTipoMostruo() != null ? m.getTipoMostruo().toString() : "", displayNombre(objetivo), danio);
+                try { historial.registrarAtaque(displayNombre(m), m.getTipoMostruo() != null ? m.getTipoMostruo().toString() : "", displayNombre(objetivo), danio); } catch (Exception e) {}
+            } else if (estadoAntes == Estado.ATURDIDO || estadoAntes == Estado.CONGELADO) {
+                vista.mostrarTurnoPerdido(displayNombre(m) + " (" + estadoActual + ")");
+            }
+
+            int hpMonstruoDespues = m.getHP();
+            if (hpMonstruoDespues < hpMonstruoAntes) {
+                int danoMon = hpMonstruoAntes - hpMonstruoDespues;
+                EstadoEfecto efe = m.getEstadoEfecto();
+                String causa = "efecto";
+                if (efe != null) {
+                    causa = efe.getTipo() == Estado.ENVENENADO ? "VENENO" : efe.getTipo().toString();
+                }
+                vista.mostrarMensaje(displayNombre(m) + " (" + estadoActual + ") sufre " + danoMon + " de daño por " + causa + ".");
+                if (efe != null) {
+                    vista.mostrarEstadoCambio(displayNombre(m), efe.getTipo().toString(), efe.getTurnos());
+                }
+                if (hpMonstruoDespues <= 0) {
+                    vista.mostrarMensaje(displayNombre(m) + " ha sido derrotado por los efectos.");
+                }
+            }
+
+            vista.mostrarEstado(displayNombre(m), m.getHP(), objetivo != null ? displayNombre(objetivo) : "", objetivo != null ? objetivo.getHP() : 0);
+            try { vista.mostrarOrdenTurnos(generarOrdenTurnos()); } catch (Exception e) { }
+        } else {
+            int hpMonstruoAntes = m.getHP();
+            m.tomarTurno(null, 0);
+            int hpMonstruoDespues = m.getHP();
+            if (hpMonstruoDespues < hpMonstruoAntes) {
+                int danoMon = hpMonstruoAntes - hpMonstruoDespues;
+                String estadoActual = m.getEstado() != null ? m.getEstado().toString() : "";
+                EstadoEfecto efe = m.getEstadoEfecto();
+                String causa = "efecto";
+                if (efe != null) causa = efe.getTipo() == Estado.ENVENENADO ? "VENENO" : efe.getTipo().toString();
+                vista.mostrarMensaje(m.getNombre() + " (" + estadoActual + ") sufre " + danoMon + " de daño por " + causa + ".");
+            }
+            vista.mostrarEstado(m.getNombre(), m.getHP(), "", 0);
+            try { vista.mostrarOrdenTurnos(generarOrdenTurnos()); } catch (Exception e) { }
+        }
+
+        vista.pedirEnter();
+    }
 }

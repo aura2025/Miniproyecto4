@@ -32,13 +32,10 @@ public class Controlador {
     private void inicializarDatos() {
         heroes = new Vector<>();
         monstruos = new Vector<>();
-        inventario = new Inventario(); // Inventario compartido/depósito común
+        inventario = new Inventario(); 
         historial = new HistorialBatallas();
 
-        // ═══════════════════════════════════════════════════════════════════════════
-        // INVENTARIO COMPARTIDO (depósito común del equipo)
-        // ═══════════════════════════════════════════════════════════════════════════
-        // Se usa como reserva para que los héroes puedan tomar más ítems durante batalla
+      
         inventario.agregarItem(Item.HIERBA, 10);
         inventario.agregarItem(Item.MEGA_HIERBA, 5);
         inventario.agregarItem(Item.RECUP_MP, 8);
@@ -49,7 +46,7 @@ public class Controlador {
         inventario.agregarItem(Item.POCION_DEFENSA, 4);
         inventario.agregarItem(Item.POCION_VELOCIDAD, 4);
 
-        // Crear héroes
+        
         PersonajeJugable heroe = new PersonajeJugable(
             TipoPersonaje.Jugable, "Heroe", 500, 50, 80, 90,
             Estado.NORMAL, Arma.ESPADA, 200, PoderEspecial.ENVENENAR
@@ -70,32 +67,26 @@ public class Controlador {
             Estado.NORMAL, Arma.HACHA, 150, PoderEspecial.ATURDIR
         );
 
-        // ═══════════════════════════════════════════════════════════════════════════
-        // DISTRIBUCIÓN INICIAL - EXACTAMENTE 5 OBJETOS DIFERENTES POR HÉROE
-        // ═══════════════════════════════════════════════════════════════════════════
-        
-        // HEROE - Líder Balanceado (5 objetos diferentes)
+       
         heroe.agregarItemAInventario(Item.HIERBA, 2);
         heroe.agregarItemAInventario(Item.MEGA_HIERBA, 1);
         heroe.agregarItemAInventario(Item.RECUP_MP, 1);
         heroe.agregarItemAInventario(Item.ANTIDOTO, 1);
         heroe.agregarItemAInventario(Item.POCION_FUERZA, 1);
         
-        // JESSICA - Hechicera de Soporte (5 objetos diferentes)
+        
         jessica.agregarItemAInventario(Item.RECUP_MP, 2);
         jessica.agregarItemAInventario(Item.HIERBA, 1);
         jessica.agregarItemAInventario(Item.PANACEA, 1);
         jessica.agregarItemAInventario(Item.ESTIMULANTE, 1);
         jessica.agregarItemAInventario(Item.POCION_DEFENSA, 1);
-        
-        // ANGELO - Arquero Táctico (5 objetos diferentes)
+    
         angelo.agregarItemAInventario(Item.HIERBA, 2);
         angelo.agregarItemAInventario(Item.POCION_VELOCIDAD, 1);
         angelo.agregarItemAInventario(Item.RECUP_MP, 1);
         angelo.agregarItemAInventario(Item.ANTIDOTO, 1);
         angelo.agregarItemAInventario(Item.ESTIMULANTE, 1);
         
-        // YANGUS - Tanque/Berserker (5 objetos diferentes)
         yangus.agregarItemAInventario(Item.MEGA_HIERBA, 2);
         yangus.agregarItemAInventario(Item.HIERBA, 1);
         yangus.agregarItemAInventario(Item.POCION_DEFENSA, 1);
@@ -107,7 +98,7 @@ public class Controlador {
         heroes.add(angelo);
         heroes.add(yangus);
 
-        // Crear monstruos
+      
         Monstruo m1 = new Monstruo(TipoPersonaje.Monstruo, "Slime Gigante", 300, 40, 60, 85, Estado.NORMAL, TipoMonstruo.AGRESIVO);
         Monstruo m2 = new Monstruo(TipoPersonaje.Monstruo, "Golem de Piedra", 350, 60, 55, 65, Estado.NORMAL, TipoMonstruo.DEFENSIVO);
         Monstruo m3 = new Monstruo(TipoPersonaje.Monstruo, "Caballero Oscuro", 280, 45, 65, 55, Estado.NORMAL, TipoMonstruo.BALANCEADO);
@@ -120,7 +111,7 @@ public class Controlador {
 
         vista.mostrarEstadoInicial(heroes, monstruos);
         
-        // Mostrar inventarios iniciales
+  
         try {
             vista.mostrarMensaje("\n╔════════════════════════════════════════════════════════╗");
             vista.mostrarMensaje("║  INVENTARIOS INICIALES DE LOS AVENTUREROS             ║");
@@ -130,7 +121,7 @@ public class Controlador {
             }
             vista.mostrarMensaje("\n[Usa la opción 10 durante tu turno para gestionar tu inventario]");
         } catch (Exception e) {
-            // No bloquear inicio si la vista falla
+            
         }
     }
     
@@ -232,7 +223,7 @@ public class Controlador {
      
         heroe.actualizarBuffs();
         
-        // GUARDAR ESTADO AL INICIO DEL TURNO (ANTES DE CUALQUIER ACCIÓN)
+        
         String descripcionInicioTurno = "Inicio del turno de " + heroe.getNombre();
         gestorDeshacer.guardarEstado(descripcionInicioTurno, heroes, monstruos, inventario, contadorTurnos);
         
@@ -242,7 +233,7 @@ public class Controlador {
             int accion = vista.mostrarMenuAcciones(heroe);
 
             switch (accion) {
-                case 1: // Atacar
+                case 1: 
                     List<Monstruo> vivosAtk = new Vector<>();
                     List<String> nombresAtk = new Vector<>();
                     for (Monstruo m : monstruos) if (m.getHP() > 0) {
@@ -260,7 +251,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 2: // Poder especial
+                case 2: 
                     GestorPoderesEspeciales gestorPoderes = GestorPoderesEspeciales.obtenerInstancia();
                     int costoPoder = gestorPoderes.obtenerCostoPoder(heroe.getPoderEspecial());
                     
@@ -311,7 +302,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 3: // Defender
+                case 3: 
                     String descripcionDefensa = heroe.getNombre() + " Se va a defenderse";
                     gestorDeshacer.guardarEstado(descripcionDefensa, heroes, monstruos, inventario, contadorTurnos);
 
@@ -320,20 +311,17 @@ public class Controlador {
                     accionCompleta = true;
                     break;
                     
-                case 4: // ═══════════════════════════════════════════════════════════════
-                    // USAR ÍTEM - MODIFICADO PARA INVENTARIO INDIVIDUAL
-                    // ═══════════════════════════════════════════════════════════════
+                case 4: 
                     String descripcionItem = heroe.getNombre() + " Va a usar un ítem";
                     gestorDeshacer.guardarEstado(descripcionItem, heroes, monstruos, inventario, contadorTurnos);
 
-                    // USAR INVENTARIO INDIVIDUAL del héroe
                     if (heroe.getInventarioIndividual() == null || heroe.getInventarioIndividual().estaVacio()) {
                         vista.mostrarMensaje("Tu inventario está vacío.");
                         vista.mostrarMensaje("Usa la opción 10 para tomar ítems del depósito común.");
                         break;
                     }
                     
-                    // Obtener ítems del inventario individual
+                 
                     List<String> nombresItems = new Vector<>();
                     InventarioIndividual invIndividual = heroe.getInventarioIndividual();
                     for (int i = 1; i <= invIndividual.getTamanio(); i++) {
@@ -361,7 +349,7 @@ public class Controlador {
                                 Estado estadoAntesItem = objetivoHeroe.getEstado();
 
                                 try {
-                                    // El método usarItem ahora consume del inventario individual
+                                    
                                     heroe.usarItem(item, objetivoHeroe);
                                     vista.mostrarMensaje(heroe.getNombre() + " usa " + item.getNombre() + " en " + objetivoHeroe.getNombre());
                                     try { historial.registrarItem(heroe.getNombre(), item.getNombre(), objetivoHeroe.getNombre()); } catch (Exception e) {}
@@ -415,7 +403,7 @@ public class Controlador {
                         vista.mostrarMensaje("No se seleccionó ningún ítem. Elige otra acción.");
                     }
                     break;
-                case 5: // Guardar partida
+                case 5: 
                     try {
                         java.nio.file.Path dir = java.nio.file.Paths.get("partidas");
                         java.nio.file.Files.createDirectories(dir);
@@ -438,7 +426,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 6: // Cargar partida
+                case 6: 
                     try {
                         java.nio.file.Path dir = java.nio.file.Paths.get("partidas");
                         if (!java.nio.file.Files.exists(dir)) {
@@ -499,7 +487,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 7: // Deshacer
+                case 7: 
                     if (gestorDeshacer.puedoDeshacer()) {
                         EstadoCombate estadoAnterior = gestorDeshacer.deshacer();
                         if (estadoAnterior != null) {
@@ -513,7 +501,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 8: // Rehacer
+                case 8: 
                     if (gestorDeshacer.puedoRehacer()) {
                         EstadoCombate estadoRehecho = gestorDeshacer.rehacer();
                         if (estadoRehecho != null) {
@@ -527,7 +515,7 @@ public class Controlador {
                     }
                     break;
                     
-                case 9: // Ver historial
+                case 9: 
                     List<String> historicoDeshacer = gestorDeshacer.obtenerHistorialDeshacer(5);
                     if (historicoDeshacer.isEmpty()) {
                         vista.mostrarMensaje("No hay historial de acciones aún.");
@@ -540,9 +528,7 @@ public class Controlador {
                     vista.mostrarMensaje("\n" + gestorDeshacer.obtenerEstadisticas());
                     break;
                     
-                case 10: // ═══════════════════════════════════════════════════════════════
-                    // NUEVO: GESTIONAR INVENTARIO INDIVIDUAL
-                    // ═══════════════════════════════════════════════════════════════
+                case 10: 
                     menuGestionInventario(heroe);
                     break;
                     
@@ -553,3 +539,4 @@ public class Controlador {
         }
         vista.pedirEnter();
     }
+}

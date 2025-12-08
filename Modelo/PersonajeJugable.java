@@ -10,6 +10,9 @@ public class PersonajeJugable implements Personaje {
 	private int ataqueBase;
 	private int velocidad;
 	private int velocidadBase;
+	private int lastSumAtk;
+	private int lastSumDef;
+	private int lastSumVel;
 	private int mp;
 	private int mpMaximo;
 	private Arma arma;
@@ -18,8 +21,11 @@ public class PersonajeJugable implements Personaje {
 	private TipoPersonaje tipoPersonaje;
 	private Estado estado;
 	private boolean estaDefendiendo;
-	private java.util.ArrayList<Buff> buffsActivos;
+	private java.util.Vector<Buff> buffsActivos;
 	private EstadoEfecto estadoEfecto;
+	
+	
+	private InventarioIndividual inventarioIndividual;
 
 	public PersonajeJugable(TipoPersonaje tipoPersonaje, String nombre, int hp, int defensa, int ataque, int velocidad, Estado estado, Arma arma, int mp, PoderEspecial poderEspecial) {
 		this.nombre = nombre;
@@ -39,8 +45,14 @@ public class PersonajeJugable implements Personaje {
 		this.mp = Math.max(0, mp);
 		this.mpMaximo = Math.max(0, mp);
 		this.estaDefendiendo = false;
-		this.buffsActivos = new java.util.ArrayList<>();
+		this.buffsActivos = new java.util.Vector<>();
 		this.estadoEfecto = null;
+		this.lastSumAtk = 0;
+		this.lastSumDef = 0;
+		this.lastSumVel = 0;
+		
+		
+		this.inventarioIndividual = new InventarioIndividual(nombre, 5);
 	}
 
 	@Override
@@ -70,6 +82,11 @@ public class PersonajeJugable implements Personaje {
 	@Override
 	public void setVelocidad(int velocidad) { this.velocidad = Math.max(0, velocidad); }
 
+	public void setVelocidadBase(int velocidadBase) {
+		this.velocidadBase = Math.max(0, velocidadBase);
+		if (this.velocidad != this.velocidadBase) this.velocidad = this.velocidadBase;
+	}
+
 	public int getMP() { return mp; }
 	public void setMP(int mp) { this.mp = Math.max(0, Math.min(mp, this.mpMaximo)); }
 
@@ -78,19 +95,16 @@ public class PersonajeJugable implements Personaje {
 
 	@Override
 	public void setEstado(Estado estado) {
-		
 		this.estado = Estado.NORMAL;
 		this.estadoEfecto = null;
 	}
 
 	public void setEstadoConDuracion(Estado estado, int turnos) {
-		
 		this.estado = Estado.NORMAL;
 		this.estadoEfecto = null;
 	}
 
 	public void setEstadoConDebilitacion(int valorDebilitacion, int turnos) {
-		
 		this.estado = Estado.NORMAL;
 		this.estadoEfecto = null;
 	}
@@ -116,7 +130,6 @@ public class PersonajeJugable implements Personaje {
 	public void tomarTurno(Personaje objetivo, int opcion) {
 		if (hp <= 0 || estado == Estado.MUERTO) return;
 
-		
 		actualizarBuffs();
 
 		if (estaDefendiendo) {
@@ -131,7 +144,8 @@ public class PersonajeJugable implements Personaje {
 
 	@Override
 	public void atacar(Personaje objetivo) {
-		if (objetivo == null || objetivo.getEstado() == Estado.MUERTO) return;
+		if (objetivo == null) throw new Modelo.exceptions.ExcepcionObjetivoInvalido("Objetivo nulo en atacar");
+		if (objetivo.getHP() <= 0 || objetivo.getEstado() == Estado.MUERTO) throw new Modelo.exceptions.ExcepcionEntidadMuerta("Objetivo ya está muerto");
 
 		int ataqueFinal;
 		int danio;
@@ -172,25 +186,32 @@ public class PersonajeJugable implements Personaje {
 	}
 
 	public void usarPoderEspecial(Personaje objetivo) {
-		if (this.hp <= 0) return;
-		if (this.mp < 50) return;
-		setMP(this.mp - 50);
+		if (this.hp <= 0) throw new Modelo.exceptions.ExcepcionEntidadMuerta("Personaje muerto no puede usar poder");
+		if (objetivo == null) throw new Modelo.exceptions.ExcepcionObjetivoInvalido("Objetivo nulo para poder especial");
+		if (objetivo.getHP() <= 0) throw new Modelo.exceptions.ExcepcionEntidadMuerta("Objetivo ya está muerto");
+		
+		GestorPoderesEspeciales gestor = GestorPoderesEspeciales.obtenerInstancia();
+		int costoPoder = gestor.obtenerCostoPoder(this.poderEspecial);
+		int duracionPoder = gestor.obtenerDuracionPoder(this.poderEspecial);
+		Estado estadoPoder = gestor.obtenerEstadoPoder(this.poderEspecial);
+		
+		if (this.mp < costoPoder) throw new Modelo.exceptions.ExcepcionMPInsuficiente("Se requieren " + costoPoder + " MP");
+		setMP(this.mp - costoPoder);
 
 		switch (this.poderEspecial) {
 			case ENVENENAR:
-				// Do not apply status effects to playable characters
 				if (objetivo instanceof Monstruo) {
-					((Monstruo) objetivo).setEstadoConDuracion(Estado.ENVENENADO, 3);
+					((Monstruo) objetivo).setEstadoConDuracion(estadoPoder, duracionPoder);
 				} else if (objetivo != null && !(objetivo instanceof PersonajeJugable)) {
-					objetivo.setEstado(Estado.ENVENENADO);
+					objetivo.setEstado(estadoPoder);
 				}
 				break;
 
 			case ATURDIR:
 				if (objetivo instanceof Monstruo) {
-					((Monstruo) objetivo).setEstadoConDuracion(Estado.ATURDIDO, 1);
+					((Monstruo) objetivo).setEstadoConDuracion(estadoPoder, duracionPoder);
 				} else if (objetivo != null && !(objetivo instanceof PersonajeJugable)) {
-					objetivo.setEstado(Estado.ATURDIDO);
+					objetivo.setEstado(estadoPoder);
 				}
 				break;
 
@@ -199,18 +220,18 @@ public class PersonajeJugable implements Personaje {
 					int reduccionAtaque = 10;
 					objetivo.setAtaque(Math.max(objetivo.getAtaque() - reduccionAtaque, 0));
 					if (objetivo instanceof Monstruo) {
-						((Monstruo) objetivo).setEstadoConDebilitacion(reduccionAtaque, 3);
+						((Monstruo) objetivo).setEstadoConDebilitacion(reduccionAtaque, duracionPoder);
 					} else {
-						objetivo.setEstado(Estado.DEBILITADO);
+						objetivo.setEstado(estadoPoder);
 					}
 				}
 				break;
 
 			case CONGELAR:
 				if (objetivo instanceof Monstruo) {
-					((Monstruo) objetivo).setEstadoConDuracion(Estado.CONGELADO, 1);
+					((Monstruo) objetivo).setEstadoConDuracion(estadoPoder, duracionPoder);
 				} else if (objetivo != null && !(objetivo instanceof PersonajeJugable)) {
-					objetivo.setEstado(Estado.CONGELADO);
+					objetivo.setEstado(estadoPoder);
 				}
 				break;
 		}
@@ -226,6 +247,13 @@ public class PersonajeJugable implements Personaje {
 	@Override
 	public void usarItem(Item item, Personaje objetivo) {
 		if (item == null || objetivo == null) return;
+		
+		
+		if (!tieneItemEnInventario(item)) {
+			throw new Modelo.exceptions.ExcepcionItemInvalido(
+				this.nombre + " no tiene " + item.getNombre() + " en su inventario"
+			);
+		}
 
 		switch (item.getTipo()) {
 			case CURACION: {
@@ -277,6 +305,15 @@ public class PersonajeJugable implements Personaje {
 			}
 			default: break;
 		}
+		
+		
+		try {
+			inventarioIndividual.usarItem(item);
+		} catch (Exception e) {
+			throw new Modelo.exceptions.ExcepcionItemInvalido(
+				"Error al consumir ítem: " + e.getMessage()
+			);
+		}
 	}
 
 	@Override
@@ -291,23 +328,45 @@ public class PersonajeJugable implements Personaje {
 		aplicarBuffs();
 	}
 
+	public java.util.List<Buff> getBuffs() {
+		return new java.util.Vector<>(this.buffsActivos);
+	}
+
+	public void setBuffs(java.util.List<Buff> buffs) {
+		this.buffsActivos = buffs == null ? new java.util.Vector<>() : new java.util.Vector<>(buffs);
+		aplicarBuffs();
+	}
+
 	public void aplicarBuffs() {
-		this.ataque = this.ataqueBase;
-		this.defensa = this.defensaBase;
-		this.velocidad = this.velocidadBase;
+		int sumAtk = 0;
+		int sumDef = 0;
+		int sumVel = 0;
 		for (Buff b : buffsActivos) {
 			switch (b.getTipo()) {
-				case ATAQUE: this.ataque += b.getValor(); break;
-				case DEFENSA: this.defensa += b.getValor(); break;
-				case VELOCIDAD: this.velocidad += b.getValor(); break;
+				case ATAQUE: sumAtk += b.getValor(); break;
+				case DEFENSA: sumDef += b.getValor(); break;
+				case VELOCIDAD: sumVel += b.getValor(); break;
 				default: break;
 			}
 		}
+
+		int nonBuffDeltaAtk = this.ataque - (this.ataqueBase + this.lastSumAtk);
+		int nonBuffDeltaDef = this.defensa - (this.defensaBase + this.lastSumDef);
+		int nonBuffDeltaVel = this.velocidad - (this.velocidadBase + this.lastSumVel);
+
+		this.ataque = this.ataqueBase + sumAtk + nonBuffDeltaAtk;
+		this.defensa = Math.max(0, this.defensaBase + sumDef + nonBuffDeltaDef);
+		this.velocidad = Math.max(0, this.velocidadBase + sumVel + nonBuffDeltaVel);
+
+		this.lastSumAtk = sumAtk;
+		this.lastSumDef = sumDef;
+		this.lastSumVel = sumVel;
+
 		if (!estaDefendiendo) this.defensaOriginal = this.defensa;
 	}
 
 	public void actualizarBuffs() {
-		java.util.ArrayList<Buff> expirados = new java.util.ArrayList<>();
+		java.util.Vector<Buff> expirados = new java.util.Vector<>();
 		for (Buff b : buffsActivos) {
 			b.reducirTurno();
 			if (b.haExpirado()) expirados.add(b);
@@ -329,5 +388,45 @@ public class PersonajeJugable implements Personaje {
 				this.estadoEfecto = null;
 			}
 		}
+	}
+	
+	
+	public InventarioIndividual getInventarioIndividual() {
+		return inventarioIndividual;
+	}
+
+	
+	public void setInventarioIndividual(InventarioIndividual inventario) {
+		if (inventario != null) {
+			this.inventarioIndividual = inventario;
+		}
+	}
+
+	
+	public boolean tieneItemEnInventario(Item item) {
+		return inventarioIndividual != null && inventarioIndividual.tieneItem(item);
+	}
+
+	
+	public boolean agregarItemAInventario(Item item, int cantidad) {
+		if (inventarioIndividual == null) {
+			inventarioIndividual = new InventarioIndividual(this.nombre, 5);
+		}
+		return inventarioIndividual.agregarItem(item, cantidad);
+	}
+
+	
+	public boolean transferirItemA(Item item, int cantidad, PersonajeJugable destino) {
+		if (inventarioIndividual == null || destino == null || destino.getInventarioIndividual() == null) {
+			return false;
+		}
+		return inventarioIndividual.transferirItem(item, cantidad, destino.getInventarioIndividual());
+	}
+
+	public String mostrarInventario() {
+		if (inventarioIndividual == null) {
+			return this.nombre + " - Sin inventario";
+		}
+		return inventarioIndividual.toString();
 	}
 }

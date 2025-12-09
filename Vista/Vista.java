@@ -19,4 +19,13 @@ public interface Vista {
     void mostrarAtaque(String actor, String categoria, String objetivo, int danio);
     void mostrarTurnoPerdido(String sujeto);
     void mostrarEstadoCambio(String sujeto, String estado, int duracion);
+    void mostrarInventarioHeroe(PersonajeJugable heroe);
+
+    void mostrarTurnoActual(int numeroTurno, String nombrePersonaje);
+    
+    int mostrarMenuPrincipal();
+    int mostrarMenuGremio();
+    int seleccionarAventurero(List<PersonajeJugable> heroes);
+    void mostrarAventureroAtendido(PersonajeJugable aventurero, int restantes);
+    void mostrarFilaGremio(String filaTexto);
 }

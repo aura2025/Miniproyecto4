@@ -600,4 +600,136 @@ public class Controlador {
 
         vista.pedirEnter();
     }
+
+    private void atacar(Personaje atacante, Personaje defensor) {
+        int hpAntesDef = defensor != null ? defensor.getHP() : 0;
+        String categoria = "";
+
+        try {
+            if (atacante instanceof PersonajeJugable) {
+                ((PersonajeJugable) atacante).atacar(defensor);
+            } else {
+                int daño = Math.max(0, atacante.getAtaque() - (defensor != null ? defensor.getDefensa() : 0) + random.nextInt(6));
+                if (defensor != null) defensor.setHP(defensor.getHP() - daño);
+            }
+        } catch (Modelo.exceptions.ExcepcionObjetivoInvalido ex) {
+            vista.mostrarMensaje("Objetivo inválido: " + ex.getMessage());
+            return;
+        } catch (Modelo.exceptions.ExcepcionEntidadMuerta ex) {
+            vista.mostrarMensaje("El objetivo ya está muerto: " + ex.getMessage());
+            return;
+        } catch (RuntimeException ex) {
+            vista.mostrarMensaje("Error durante el ataque: " + ex.getMessage());
+            return;
+        }
+
+        if (atacante instanceof Monstruo) {
+            Monstruo mm = (Monstruo) atacante;
+            categoria = mm.getTipoMostruo() != null ? mm.getTipoMostruo().toString() : "";
+        }
+
+        int hpDespuesDef = defensor != null ? defensor.getHP() : 0;
+        int danoReal = Math.max(0, hpAntesDef - hpDespuesDef);
+
+        vista.mostrarAtaque(displayNombre(atacante), categoria, defensor != null ? displayNombre(defensor) : "<desconocido>", danoReal);
+        vista.mostrarEstado(displayNombre(atacante), atacante.getHP(), defensor != null ? displayNombre(defensor) : "", defensor != null ? defensor.getHP() : 0);
+        try { vista.mostrarOrdenTurnos(generarOrdenTurnos()); } catch (Exception e) { }
+        try {
+            historial.registrarAtaque(displayNombre(atacante) + " (HP:" + atacante.getHP() + ")", categoria, defensor != null ? displayNombre(defensor) : "<desconocido>", danoReal);
+        } catch (Exception e) {
+        }
+    }
+
+    private PersonajeJugable seleccionarHeroeAleatorio() {
+        List<PersonajeJugable> vivos = new Vector<>();
+        for (PersonajeJugable h : heroes) if (h.getHP() > 0) vivos.add(h);
+        if (vivos.isEmpty()) return null;
+        return vivos.get(random.nextInt(vivos.size()));
+    }
+
+    private String displayNombre(Personaje p) {
+        if (p == null) return "<desconocido>";
+        String nombre = p.getNombre();
+        if (nombre != null && !nombre.trim().isEmpty()) return nombre;
+        if (p instanceof Monstruo) {
+            TipoMonstruo t = ((Monstruo)p).getTipoMostruo();
+            return t != null ? t.toString() : "<Monstruo>";
+        }
+        return "<desconocido>";
+    }
+
+    private List<Personaje> generarOrdenTurnos() {
+        List<Personaje> todos = new Vector<>();
+        todos.addAll(heroes);
+        todos.addAll(monstruos);
+        todos.sort((a, b) -> b.getVelocidad() - a.getVelocidad());
+        return todos;
+    }
+
+    private boolean hayVivos(List<? extends Personaje> lista) {
+        return lista.stream().anyMatch(p -> p.getHP() > 0);
+    }
+    
+    private void menuGremio() {
+        boolean continuar = true;
+        
+        while (continuar) {
+            int opcion = vista.mostrarMenuGremio();
+            
+            switch (opcion) {
+                case 1:
+                    agregarAventureroGremio();
+                    break;
+                case 2:
+                    atenderSiguienteGremio();
+                    break;
+                case 3:
+                    mostrarFilaGremio();
+                    break;
+                case 4:
+                    continuar = false;
+                    break;
+            }
+        }
+    }
+    
+    private void agregarAventureroGremio() {
+        int seleccion = vista.seleccionarAventurero(heroes);
+        
+        if (seleccion >= 1 && seleccion <= heroes.size()) {
+            PersonajeJugable aventurero = heroes.get(seleccion - 1);
+            gestorGremio.agregarAventurero(aventurero);
+            vista.mostrarMensaje("\n✓ " + aventurero.getNombre() + " ha sido agregado a la cola del gremio.");
+            vista.mostrarMensaje("Posición en la cola: " + gestorGremio.cantidadEnCola());
+        } else {
+            vista.mostrarMensaje("\nOperación cancelada.");
+        }
+        
+        vista.pedirEnter();
+    }
+    
+    private void atenderSiguienteGremio() {
+        if (!gestorGremio.hayAventureros()) {
+            vista.mostrarMensaje("\n⚠ No hay aventureros en la cola del gremio.");
+            vista.pedirEnter();
+            return;
+        }
+        
+        PersonajeJugable atendido = gestorGremio.atenderSiguiente();
+        
+        if (atendido != null) {
+            vista.mostrarAventureroAtendido(atendido, gestorGremio.cantidadEnCola());
+        } else {
+            vista.mostrarMensaje("\n⚠ Error al atender aventurero.");
+        }
+        
+        vista.pedirEnter();
+    }
+    
+    private void mostrarFilaGremio() {
+        String filaTexto = gestorGremio.mostrarCola();
+        vista.mostrarFilaGremio(filaTexto);
+        vista.pedirEnter();
+    }
 }
+

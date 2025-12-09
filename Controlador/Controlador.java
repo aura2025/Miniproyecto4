@@ -531,6 +531,7 @@ public class Controlador {
                     break;
                     
                 case 10: 
+                    menuGestionInventario(heroe);
                     break;
                     
                 default:

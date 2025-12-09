@@ -1,5 +1,7 @@
 package Modelo;
 
+
+
 public class PersonajeJugable implements Personaje {
 	private int hp;
 	private int hpMaximo;

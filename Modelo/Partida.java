@@ -33,11 +33,11 @@ public class Partida {
             b.append(h.getTipoPersonaje() == null ? "" : h.getTipoPersonaje().toString()).append("|");
             b.append(h.getPoderEspecial() == null ? "" : h.getPoderEspecial().toString()).append("|");
             b.append(h.getEstado() == null ? "" : h.getEstado().toString()).append("|");
-            // estadoEfecto
+          
             EstadoEfecto ef = h.getEstadoEfecto();
             if (ef != null) b.append(ef.getTipo()).append(",").append(ef.getTurnos()).append(",").append(ef.getValorDebilitacion());
             b.append("|");
-            // buffs: count and serialized list tipo,valor,turnos separated by ';'
+         
             java.util.List<Buff> buffs = h.getBuffs();
             b.append(buffs == null ? 0 : buffs.size()).append("|");
             if (buffs != null && !buffs.isEmpty()) {
@@ -70,7 +70,7 @@ public class Partida {
             lines.add(b.toString());
         }
 
-        // inventario compartido
+        
         lines.add("INVENTARIO_COUNT:" + inventario.getTamanio());
         for (int i = 1; i <= inventario.getTamanio(); i++) {
             Item it = inventario.getItemPorIndice(i);
@@ -78,9 +78,7 @@ public class Partida {
             lines.add("ITEM|" + it.toString() + "|" + inventario.getCantidad(it));
         }
 
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NUEVO: INVENTARIOS INDIVIDUALES DE HÉROES
-        // ═══════════════════════════════════════════════════════════════════════════
+        
         lines.add("INVENTARIOS_INDIVIDUALES_COUNT:" + heroes.size());
         for (PersonajeJugable h : heroes) {
             StringBuilder invLine = new StringBuilder();
@@ -91,7 +89,7 @@ public class Partida {
             if (inv != null && !inv.estaVacio()) {
                 invLine.append(inv.getCapacidadMaxima()).append("|");
                 
-                // Serializar ítems: ITEM_NAME:CANTIDAD;ITEM_NAME:CANTIDAD;...
+         
                 java.util.Map<Item, Integer> itemsMap = inv.obtenerItemsMap();
                 StringBuilder itemsStr = new StringBuilder();
                 for (java.util.Map.Entry<Item, Integer> entry : itemsMap.entrySet()) {
@@ -100,20 +98,20 @@ public class Partida {
                 }
                 invLine.append(escape(itemsStr.toString()));
             } else {
-                invLine.append("5|"); // Capacidad por defecto, sin ítems
+                invLine.append("5|");
             }
             
             lines.add(invLine.toString());
         }
 
-        // historial
+
         List<String> eventos = historial.getEventos();
         lines.add("HISTORIAL_COUNT:" + eventos.size());
         for (String ev : eventos) {
             lines.add("HISTORIAL|" + escape(ev));
         }
 
-        // orden de turnos guardada (opcional)
+     
         if (ordenActual != null) {
             lines.add("ORDER_COUNT:" + ordenActual.size());
             for (Personaje p : ordenActual) {
@@ -125,7 +123,7 @@ public class Partida {
             }
         }
 
-        // velocidades actuales (heroes + monstruos) para restaurar exactamente el turno
+  
         List<String> velLines = new Vector<>();
         for (PersonajeJugable h : heroes) {
             velLines.add("VEL|HERO|" + escape(h.getNombre()) + "|" + h.getVelocidad());
@@ -152,9 +150,9 @@ public class Partida {
 
         int idx = 0;
         if (idx >= lines.size()) return data;
-        // VERSION
+     
         String v = lines.get(idx++);
-        // CURRENT
+    
         if (idx >= lines.size()) return data;
         String cur = lines.get(idx++);
         if (cur.startsWith("CURRENT:")) {
@@ -164,7 +162,7 @@ public class Partida {
             data.proximoActorNombre = parts.length > 1 ? parts[1] : "";
         }
 
-        // HEROES
+     
         if (idx >= lines.size()) return data;
         String hc = lines.get(idx++);
         int heroesCount = 0;
@@ -190,7 +188,7 @@ public class Partida {
             if (f.length > 10 && f[10] != null && !f[10].isEmpty()) {
                 try { pj.setEstado(Estado.valueOf(f[10])); } catch (Exception e) {}
             }
-            // estadoEfecto
+          
             if (f.length > 11 && f[11] != null && !f[11].isEmpty()) {
                 try {
                     String[] efp = f[11].split(",", -1);
@@ -203,7 +201,7 @@ public class Partida {
                     }
                 } catch (Exception e) {}
             }
-            // buffs
+        
             if (f.length > 12 && f[12] != null && !f[12].isEmpty()) {
                 int bcount = parseIntSafe(f,12,0);
                 if (bcount > 0 && f.length > 13 && f[13] != null && !f[13].isEmpty()) {
@@ -226,7 +224,7 @@ public class Partida {
             data.heroes.add(pj);
         }
 
-        // MONSTRUOS
+     
         if (idx >= lines.size()) return data;
         String mc = lines.get(idx++);
         int monCount = 0;
@@ -300,7 +298,7 @@ public class Partida {
             }
         }
 
-        // INVENTARIO COMPARTIDO
+     
         if (idx < lines.size()) {
             String invc = lines.get(idx++);
             if (invc.startsWith("INVENTARIO_COUNT:")) {
@@ -318,9 +316,7 @@ public class Partida {
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════════════════
-        // NUEVO: INVENTARIOS INDIVIDUALES
-        // ═══════════════════════════════════════════════════════════════════════════
+      
         if (idx < lines.size()) {
             String maybeInv = lines.get(idx);
             if (maybeInv != null && maybeInv.startsWith("INVENTARIOS_INDIVIDUALES_COUNT:")) {
@@ -341,7 +337,6 @@ public class Partida {
                     
                     InventarioIndividual inv = new InventarioIndividual(nombreHeroe, capacidad);
                     
-                    // Deserializar ítems
                     if (parts.length > 2 && parts[2] != null && !parts[2].isEmpty()) {
                         String itemsStr = unescape(parts[2]);
                         String[] itemsPairs = itemsStr.split(";");
@@ -356,28 +351,27 @@ public class Partida {
                                 int cantidad = Integer.parseInt(itemData[1]);
                                 inv.agregarItem(item, cantidad);
                             } catch (Exception e) {
-                                // Ítem inválido, ignorar
+                          
                             }
                         }
                     }
                     
                     inventariosPorNombre.put(nombreHeroe, inv);
                 }
-                
-                // Asignar inventarios a héroes
+     
                 for (PersonajeJugable h : data.heroes) {
                     InventarioIndividual inv = inventariosPorNombre.get(h.getNombre());
                     if (inv != null) {
                         h.setInventarioIndividual(inv);
                     } else {
-                        // Si no hay inventario guardado, crear uno vacío
+                    
                         h.setInventarioIndividual(new InventarioIndividual(h.getNombre(), 5));
                     }
                 }
             }
         }
 
-        // Si no se encontró la sección de inventarios, crear inventarios vacíos para todos
+     
         if (data.heroes != null) {
             for (PersonajeJugable h : data.heroes) {
                 if (h.getInventarioIndividual() == null) {
@@ -386,7 +380,7 @@ public class Partida {
             }
         }
 
-        // HISTORIAL
+
         if (idx < lines.size()) {
             String hc2 = lines.get(idx++);
             if (hc2.startsWith("HISTORIAL_COUNT:")) {
@@ -399,7 +393,7 @@ public class Partida {
             }
         }
 
-        // ORDER (optional)
+   
         if (idx < lines.size()) {
             String maybe = lines.get(idx);
             if (maybe.startsWith("ORDER_COUNT:")) {
@@ -423,7 +417,7 @@ public class Partida {
             }
         }
 
-        // VEL (optional)
+    
         if (idx < lines.size()) {
             String maybeVel = lines.get(idx);
             if (maybeVel != null && maybeVel.startsWith("VEL_COUNT:")) {

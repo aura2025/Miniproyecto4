@@ -11,14 +11,16 @@ public class VistaGui extends JFrame implements Vista {
     private JTextArea areaLog;
     private JPanel heroesContainer;
     private JPanel monstruosContainer;
-    private JButton btnAtacar, btnPoder, btnDefender, btnItem;
+    private JButton btnAtacar, btnPoder, btnDefender, btnItem, btnGuardar, btnCargar, btnDeshacer, btnRehacer, btnHistorial;
+    private JLabel lblTurnoActual;
 
     
     private final Color CONTENT_BG = new Color(20, 20, 20);
     private final Color HERO_BG = new Color(10, 70, 10); 
     private final Color MONSTER_BG = new Color(70, 10, 10); 
     private final Color CARD_OVERLAY = new Color(60, 60, 60, 160); 
-    private final Color BORDER_GRAY = new Color(80, 80, 80, 200); 
+    private final Color BORDER_GRAY = new Color(80, 80, 80, 200);
+    private final Color TURNO_BG = new Color(30, 30, 100); 
 
     
     private int opcionSeleccionada = -1;
@@ -34,6 +36,15 @@ public class VistaGui extends JFrame implements Vista {
 
     getContentPane().setBackground(CONTENT_BG);
 
+
+    lblTurnoActual = new JLabel("TURNO ACTUAL: Esperando inicio...", SwingConstants.CENTER);
+    lblTurnoActual.setFont(new Font("Consolas", Font.BOLD, 16));
+    lblTurnoActual.setForeground(Color.WHITE);
+    lblTurnoActual.setBackground(Color.BLACK);
+    lblTurnoActual.setOpaque(true);
+    lblTurnoActual.setBorder(BorderFactory.createLineBorder(Color.CYAN, 3));
+    lblTurnoActual.setPreferredSize(new Dimension(1000, 50));
+    add(lblTurnoActual, BorderLayout.NORTH);
 
     heroesContainer = new JPanel();
     heroesContainer.setLayout(new BoxLayout(heroesContainer, BoxLayout.Y_AXIS));
@@ -70,7 +81,7 @@ public class VistaGui extends JFrame implements Vista {
     panelMonstruos.setPreferredSize(new Dimension(420, 0));
     add(panelMonstruos, BorderLayout.CENTER);
 
-    JPanel panelAcciones = new JPanel(new GridLayout(4, 1, 5, 5));
+    JPanel panelAcciones = new JPanel(new GridLayout(9, 1, 5, 5));
 
     panelAcciones.setBackground(Color.BLACK);
         panelAcciones.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -79,12 +90,21 @@ public class VistaGui extends JFrame implements Vista {
         btnPoder = crearBoton(" Poder Especial");
         btnDefender = crearBoton(" Defender");
         btnItem = crearBoton(" Usar Ítem");
+        btnGuardar = crearBoton(" Guardar partida");
+        btnCargar = crearBoton(" Cargar partida");
+        btnDeshacer = crearBoton(" Deshacer");
+        btnRehacer = crearBoton(" Rehacer");      
+        btnHistorial = crearBoton(" Historial");
 
     panelAcciones.add(btnAtacar);
     panelAcciones.add(btnPoder);
     panelAcciones.add(btnDefender);
     panelAcciones.add(btnItem);
-
+    panelAcciones.add(btnGuardar);
+    panelAcciones.add(btnCargar);
+    panelAcciones.add(btnDeshacer);
+    panelAcciones.add(btnRehacer);  
+    panelAcciones.add(btnHistorial);
 
     panelAcciones.setPreferredSize(new Dimension(160, 0));
     add(panelAcciones, BorderLayout.EAST);
@@ -105,6 +125,12 @@ public class VistaGui extends JFrame implements Vista {
         btnPoder.addActionListener(e -> opcionSeleccionada = 2);
         btnDefender.addActionListener(e -> opcionSeleccionada = 3);
         btnItem.addActionListener(e -> opcionSeleccionada = 4);
+        btnGuardar.addActionListener(e -> opcionSeleccionada = 5);
+        btnCargar.addActionListener(e -> opcionSeleccionada = 6);
+        btnDeshacer.addActionListener(e -> opcionSeleccionada = 7);
+        btnRehacer.addActionListener(e -> opcionSeleccionada = 8);
+        btnHistorial.addActionListener(e -> opcionSeleccionada = 9);
+
 
         setVisible(true);
     }
@@ -113,12 +139,12 @@ public class VistaGui extends JFrame implements Vista {
 
     @Override
     public void mostrarBanner(String mensaje) {
-        log("\n==============================\n" + mensaje + "\n==============================");
+        safeLog("\n==============================\n" + mensaje + "\n==============================");
     }
 
     @Override
     public void mostrarMensaje(String mensaje) {
-        log(mensaje);
+        safeLog(mensaje);
     }
 
     @Override
@@ -127,16 +153,18 @@ public class VistaGui extends JFrame implements Vista {
         this.lastHeroes = heroes;
         this.lastMonstruos = monstruos;
         actualizarListas(heroes, monstruos);
-        log("Estado inicial del combate cargado.");
+        safeLog("Estado inicial del combate cargado.");
     }
 
     @Override
     public void mostrarOrdenTurnos(List<Personaje> orden) {
         StringBuilder sb = new StringBuilder("Orden de turnos:\n");
         for (Personaje p : orden) {
-            sb.append(" - ").append(p.getNombre()).append(" (Vel: ").append(p.getVelocidad()).append(")\n");
+            String nombre = (p.getNombre() != null && !p.getNombre().trim().isEmpty()) ? p.getNombre() :
+                    (p instanceof Monstruo ? ((Monstruo)p).getTipoMostruo().toString() : "<desconocido>");
+            sb.append(" - ").append(nombre).append(" (Vel: ").append(p.getVelocidad()).append(")\n");
         }
-        log(sb.toString());
+        safeLog(sb.toString());
     }
 
     @Override
@@ -146,10 +174,10 @@ public class VistaGui extends JFrame implements Vista {
             mostrarInfoHeroe((PersonajeJugable)p);
         } else if (p != null) {
 
-            log("Turno de " + p.getNombre());
+            safeLog("Turno de " + p.getNombre());
         }
        
-        return leerOpcionSegura(1, 4);
+        return leerOpcionSegura(1, 6);
     }
 
 
@@ -159,7 +187,7 @@ public class VistaGui extends JFrame implements Vista {
         sb.append("\n[Estado] ");
         if (atacanteNombre != null && !atacanteNombre.isEmpty()) sb.append(atacanteNombre).append(" (HP: ").append(atacanteHP).append(")");
         if (defensorNombre != null && !defensorNombre.isEmpty()) sb.append(" -> ").append(defensorNombre).append(" (HP: ").append(defensorHP).append(")");
-        log(sb.toString());
+        safeLog(sb.toString());
         if (lastHeroes != null && lastMonstruos != null) {
             actualizarListas(lastHeroes, lastMonstruos);
         }
@@ -167,7 +195,7 @@ public class VistaGui extends JFrame implements Vista {
 
     @Override
     public void mostrarInfoHeroe(PersonajeJugable p) {
-        log("\nTurno de " + p.getNombre() + " | Estado: " + p.getEstado());
+        safeLog("\nTurno de " + p.getNombre() + " | Estado: " + p.getEstado());
     }
 
     @Override
@@ -189,7 +217,7 @@ public class VistaGui extends JFrame implements Vista {
     @Override
     public int leerOpcionSegura(int min, int max) {
         opcionSeleccionada = -1;
-        log("Esperando acción del jugador...");
+        safeLog("Esperando acción del jugador...");
         while (opcionSeleccionada == -1) {
             try { Thread.sleep(100); } catch (InterruptedException e) {}
         }
@@ -199,7 +227,7 @@ public class VistaGui extends JFrame implements Vista {
     @Override
     public int seleccionarItem(List<String> nombresItems) {
         if (nombresItems == null || nombresItems.isEmpty()) {
-            log("Inventario vacío.");
+            safeLog("Inventario vacío.");
             return -1;
         }
         String[] items = nombresItems.toArray(new String[0]);
@@ -237,6 +265,16 @@ public class VistaGui extends JFrame implements Vista {
 
     @Override
     public void pedirEnter() {
+    }
+    
+    @Override
+    public void mostrarTurnoActual(int numeroTurno, String nombrePersonaje) {
+        String texto = "TURNO #" + numeroTurno + " - " + nombrePersonaje;
+        SwingUtilities.invokeLater(() -> {
+            lblTurnoActual.setText(texto);
+            lblTurnoActual.repaint();
+        });
+        safeLog(">>> " + texto);
     }
 
 
@@ -308,6 +346,18 @@ public class VistaGui extends JFrame implements Vista {
     estado.setOpaque(false);
         centro.add(estado);
 
+    JLabel velLabel = new JLabel("Vel: " + p.getVelocidad());
+    velLabel.setForeground(Color.WHITE);
+    velLabel.setOpaque(false);
+    velLabel.setFont(new Font("Consolas", Font.PLAIN, 12));
+    centro.add(velLabel);
+
+    JLabel atkLabel = new JLabel("Atk: " + p.getAtaque() + " | Def: " + p.getDefensa());
+    atkLabel.setForeground(Color.WHITE);
+    atkLabel.setOpaque(false);
+    atkLabel.setFont(new Font("Consolas", Font.PLAIN, 12));
+    centro.add(atkLabel);
+
         panel.add(centro, BorderLayout.CENTER);
         return panel;
     }
@@ -318,7 +368,9 @@ public class VistaGui extends JFrame implements Vista {
     panel.setOpaque(true);
     panel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY, 3));
 
-    JLabel lblNombre = new JLabel(m.getNombre());
+    String display = (m.getNombre() == null || m.getNombre().trim().isEmpty()) ?
+                      (m.getTipoMostruo() != null ? m.getTipoMostruo().toString() : "<Monstruo>") : m.getNombre();
+    JLabel lblNombre = new JLabel(display);
     lblNombre.setForeground(Color.WHITE);
     lblNombre.setOpaque(false);
         lblNombre.setFont(new Font("Consolas", Font.BOLD, 14));
@@ -339,6 +391,18 @@ public class VistaGui extends JFrame implements Vista {
     estado.setOpaque(false);
         centro.add(estado);
 
+        JLabel velLabel = new JLabel("Vel: " + m.getVelocidad());
+        velLabel.setForeground(Color.WHITE);
+        velLabel.setOpaque(false);
+        velLabel.setFont(new Font("Consolas", Font.PLAIN, 12));
+        centro.add(velLabel);
+
+        JLabel atkDef = new JLabel("Atk: " + m.getAtaque() + " | Def: " + m.getDefensa());
+        atkDef.setForeground(Color.WHITE);
+        atkDef.setOpaque(false);
+        atkDef.setFont(new Font("Consolas", Font.PLAIN, 12));
+        centro.add(atkDef);
+
         panel.add(centro, BorderLayout.CENTER);
         return panel;
     }
@@ -355,5 +419,97 @@ public class VistaGui extends JFrame implements Vista {
         } else {
             SwingUtilities.invokeLater(() -> log(texto));
         }
+    }
+    
+    @Override
+    public int mostrarMenuPrincipal() {
+        String[] opciones = {"Iniciar Batalla", "Atención en el Gremio", "Salir"};
+        int seleccion = JOptionPane.showOptionDialog(
+            this,
+            "Selecciona una opción:",
+            "Menú Principal del Gremio",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.PLAIN_MESSAGE,
+            null,
+            opciones,
+            opciones[0]
+        );
+        return seleccion == -1 ? 3 : seleccion + 1;
+    }
+    
+    @Override
+    public int mostrarMenuGremio() {
+        String[] opciones = {
+            "Agregar aventurero a la cola",
+            "Atender siguiente aventurero",
+            "Ver fila actual",
+            "Volver al menú principal"
+        };
+        int seleccion = JOptionPane.showOptionDialog(
+            this,
+            "Sistema de atención del gremio (FIFO):",
+            "Atención en el Gremio",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.PLAIN_MESSAGE,
+            null,
+            opciones,
+            opciones[0]
+        );
+        return seleccion == -1 ? 4 : seleccion + 1;
+    }
+    
+    @Override
+    public int seleccionarAventurero(List<PersonajeJugable> heroes) {
+        String[] opciones = new String[heroes.size() + 1];
+        for (int i = 0; i < heroes.size(); i++) {
+            PersonajeJugable h = heroes.get(i);
+            opciones[i] = h.getNombre() + " (Poder: " + h.getPoderEspecial() + ")";
+        }
+        opciones[heroes.size()] = "Cancelar";
+        
+        int seleccion = JOptionPane.showOptionDialog(
+            this,
+            "Selecciona el aventurero a agregar:",
+            "Agregar a la Cola",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.PLAIN_MESSAGE,
+            null,
+            opciones,
+            opciones[0]
+        );
+        return seleccion == -1 ? heroes.size() + 1 : seleccion + 1;
+    }
+    
+    @Override
+    public void mostrarAventureroAtendido(PersonajeJugable aventurero, int restantes) {
+        String mensaje = "✓ Aventurero atendido: " + aventurero.getNombre() + "\n\n" +
+                        "  - Poder Especial: " + aventurero.getPoderEspecial() + "\n" +
+                        "  - HP: " + aventurero.getHP() + "/" + aventurero.getHPMaximo() + "\n" +
+                        "  - MP: " + aventurero.getMP() + "/" + aventurero.getMPMaximo() + "\n\n" +
+                        "Aventureros restantes en cola: " + restantes;
+        
+        JOptionPane.showMessageDialog(
+            this,
+            mensaje,
+            "Atendiendo Aventurero (FIFO)",
+            JOptionPane.INFORMATION_MESSAGE
+        );
+        safeLog("Atendido: " + aventurero.getNombre() + " | Restantes: " + restantes);
+    }
+    
+    @Override
+    public void mostrarFilaGremio(String filaTexto) {
+        JOptionPane.showMessageDialog(
+            this,
+            filaTexto,
+            "Fila del Gremio",
+            JOptionPane.INFORMATION_MESSAGE
+        );
+        safeLog("Consultando fila del gremio");
+    }
+
+    @Override
+    public void mostrarInventarioHeroe(PersonajeJugable heroe) {
+        mostrarMensaje(heroe.mostrarInventario());
     }
 }

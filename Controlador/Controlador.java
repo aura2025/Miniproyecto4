@@ -35,7 +35,7 @@ public class Controlador {
         inventario = new Inventario(); 
         historial = new HistorialBatallas();
 
-      
+       
         inventario.agregarItem(Item.HIERBA, 10);
         inventario.agregarItem(Item.MEGA_HIERBA, 5);
         inventario.agregarItem(Item.RECUP_MP, 8);
@@ -46,7 +46,6 @@ public class Controlador {
         inventario.agregarItem(Item.POCION_DEFENSA, 4);
         inventario.agregarItem(Item.POCION_VELOCIDAD, 4);
 
-        
         PersonajeJugable heroe = new PersonajeJugable(
             TipoPersonaje.Jugable, "Heroe", 500, 50, 80, 90,
             Estado.NORMAL, Arma.ESPADA, 200, PoderEspecial.ENVENENAR
@@ -67,26 +66,28 @@ public class Controlador {
             Estado.NORMAL, Arma.HACHA, 150, PoderEspecial.ATURDIR
         );
 
-       
+        
+
         heroe.agregarItemAInventario(Item.HIERBA, 2);
         heroe.agregarItemAInventario(Item.MEGA_HIERBA, 1);
         heroe.agregarItemAInventario(Item.RECUP_MP, 1);
         heroe.agregarItemAInventario(Item.ANTIDOTO, 1);
         heroe.agregarItemAInventario(Item.POCION_FUERZA, 1);
         
-        
+   
         jessica.agregarItemAInventario(Item.RECUP_MP, 2);
         jessica.agregarItemAInventario(Item.HIERBA, 1);
         jessica.agregarItemAInventario(Item.PANACEA, 1);
         jessica.agregarItemAInventario(Item.ESTIMULANTE, 1);
         jessica.agregarItemAInventario(Item.POCION_DEFENSA, 1);
-    
+        
+
         angelo.agregarItemAInventario(Item.HIERBA, 2);
         angelo.agregarItemAInventario(Item.POCION_VELOCIDAD, 1);
         angelo.agregarItemAInventario(Item.RECUP_MP, 1);
         angelo.agregarItemAInventario(Item.ANTIDOTO, 1);
         angelo.agregarItemAInventario(Item.ESTIMULANTE, 1);
-        
+
         yangus.agregarItemAInventario(Item.MEGA_HIERBA, 2);
         yangus.agregarItemAInventario(Item.HIERBA, 1);
         yangus.agregarItemAInventario(Item.POCION_DEFENSA, 1);
@@ -98,7 +99,7 @@ public class Controlador {
         heroes.add(angelo);
         heroes.add(yangus);
 
-      
+     
         Monstruo m1 = new Monstruo(TipoPersonaje.Monstruo, "Slime Gigante", 300, 40, 60, 85, Estado.NORMAL, TipoMonstruo.AGRESIVO);
         Monstruo m2 = new Monstruo(TipoPersonaje.Monstruo, "Golem de Piedra", 350, 60, 55, 65, Estado.NORMAL, TipoMonstruo.DEFENSIVO);
         Monstruo m3 = new Monstruo(TipoPersonaje.Monstruo, "Caballero Oscuro", 280, 45, 65, 55, Estado.NORMAL, TipoMonstruo.BALANCEADO);
@@ -111,7 +112,7 @@ public class Controlador {
 
         vista.mostrarEstadoInicial(heroes, monstruos);
         
-  
+
         try {
             vista.mostrarMensaje("\n╔════════════════════════════════════════════════════════╗");
             vista.mostrarMensaje("║  INVENTARIOS INICIALES DE LOS AVENTUREROS             ║");
@@ -121,7 +122,7 @@ public class Controlador {
             }
             vista.mostrarMensaje("\n[Usa la opción 10 durante tu turno para gestionar tu inventario]");
         } catch (Exception e) {
-            
+           
         }
     }
     
@@ -315,13 +316,14 @@ public class Controlador {
                     String descripcionItem = heroe.getNombre() + " Va a usar un ítem";
                     gestorDeshacer.guardarEstado(descripcionItem, heroes, monstruos, inventario, contadorTurnos);
 
+                  
                     if (heroe.getInventarioIndividual() == null || heroe.getInventarioIndividual().estaVacio()) {
                         vista.mostrarMensaje("Tu inventario está vacío.");
                         vista.mostrarMensaje("Usa la opción 10 para tomar ítems del depósito común.");
                         break;
                     }
                     
-                 
+            
                     List<String> nombresItems = new Vector<>();
                     InventarioIndividual invIndividual = heroe.getInventarioIndividual();
                     for (int i = 1; i <= invIndividual.getTamanio(); i++) {
@@ -529,7 +531,6 @@ public class Controlador {
                     break;
                     
                 case 10: 
-                    menuGestionInventario(heroe);
                     break;
                     
                 default:
@@ -539,7 +540,157 @@ public class Controlador {
         }
         vista.pedirEnter();
     }
- private void turnoMonstruo(Monstruo m) {
+
+  
+    private void menuGestionInventario(PersonajeJugable heroe) {
+        boolean continuar = true;
+        
+        while (continuar) {
+            vista.mostrarMensaje("\n=== GESTIÓN DE INVENTARIO: " + heroe.getNombre() + " ===");
+            vista.mostrarMensaje(heroe.mostrarInventario());
+            vista.mostrarMensaje("\nEspacios: " + heroe.getInventarioIndividual().calcularEspaciosUsados() + 
+                               "/" + heroe.getInventarioIndividual().getCapacidadMaxima());
+            vista.mostrarMensaje("\n1. Tomar ítem del depósito común");
+            vista.mostrarMensaje("2. Transferir ítem a otro héroe");
+            vista.mostrarMensaje("3. Ver depósito común");
+            vista.mostrarMensaje("4. Volver");
+            
+            int opcion = vista.leerOpcionSegura(1, 4);
+            
+            switch (opcion) {
+                case 1:
+                    tomarItemDeposito(heroe);
+                    break;
+                case 2:
+                    transferirItemAHeroe(heroe);
+                    break;
+                case 3:
+                    mostrarDepositoComun();
+                    break;
+                case 4:
+                    continuar = false;
+                    break;
+            }
+        }
+    }
+    
+    
+    private void tomarItemDeposito(PersonajeJugable heroe) {
+        if (inventario.estaVacio()) {
+            vista.mostrarMensaje("\n✗ El depósito común está vacío.");
+            vista.pedirEnter();
+            return;
+        }
+        
+        if (heroe.getInventarioIndividual().estaLleno()) {
+            vista.mostrarMensaje("\n✗ Tu inventario está lleno. Capacidad máxima alcanzada.");
+            vista.pedirEnter();
+            return;
+        }
+        
+        List<String> nombresItems = new Vector<>();
+        for (int i = 1; i <= inventario.getTamanio(); i++) {
+            Item it = inventario.getItemPorIndice(i);
+            if (it != null) {
+                nombresItems.add(it.getNombre() + " x" + inventario.getCantidad(it));
+            }
+        }
+        
+        int selItem = vista.seleccionarItem(nombresItems);
+        if (selItem >= 0) {
+            Item item = inventario.getItemPorIndice(selItem + 1);
+            if (item != null && inventario.tieneItem(item)) {
+                try {
+                    inventario.usarItem(item);
+                    boolean agregado = heroe.agregarItemAInventario(item, 1);
+                    
+                    if (agregado) {
+                        vista.mostrarMensaje("\n✓ " + heroe.getNombre() + " tomó " + 
+                                           item.getNombre() + " del depósito común.");
+                        historial.registrarMensaje(heroe.getNombre() + " tomó " + 
+                                                 item.getNombre() + " del depósito");
+                    } else {
+                        inventario.agregarItem(item, 1);
+                        vista.mostrarMensaje("\n✗ No se pudo agregar el ítem al inventario.");
+                    }
+                } catch (Exception e) {
+                    vista.mostrarMensaje("\n✗ Error al tomar el ítem: " + e.getMessage());
+                }
+            }
+        }
+        vista.pedirEnter();
+    }
+    
+   
+    private void transferirItemAHeroe(PersonajeJugable heroe) {
+        if (heroe.getInventarioIndividual().estaVacio()) {
+            vista.mostrarMensaje("\n✗ Tu inventario está vacío.");
+            vista.pedirEnter();
+            return;
+        }
+        
+        List<String> nombresItems = heroe.getInventarioIndividual().obtenerListaItems();
+        int selItem = vista.seleccionarItem(nombresItems);
+        
+        if (selItem >= 0) {
+            Item item = heroe.getInventarioIndividual().getItemPorIndice(selItem + 1);
+            if (item != null) {
+                List<PersonajeJugable> otrosHeroes = new Vector<>();
+                List<String> nombresHeroes = new Vector<>();
+                
+                for (PersonajeJugable h : heroes) {
+                    if (!h.getNombre().equals(heroe.getNombre()) && h.getHP() > 0) {
+                        otrosHeroes.add(h);
+                        int espacios = h.getInventarioIndividual().getEspaciosDisponibles();
+                        nombresHeroes.add(h.getNombre() + " (Espacios: " + espacios + ")");
+                    }
+                }
+                
+                if (otrosHeroes.isEmpty()) {
+                    vista.mostrarMensaje("\n✗ No hay otros héroes disponibles.");
+                    vista.pedirEnter();
+                    return;
+                }
+                
+                int idxDestino = vista.seleccionarObjetivoHeroes(nombresHeroes);
+                if (idxDestino >= 0 && idxDestino < otrosHeroes.size()) {
+                    PersonajeJugable destino = otrosHeroes.get(idxDestino);
+                    
+                    boolean transferido = heroe.transferirItemA(item, 1, destino);
+                    if (transferido) {
+                        vista.mostrarMensaje("\n✓ " + heroe.getNombre() + " transfirió " + 
+                                           item.getNombre() + " a " + destino.getNombre());
+                        historial.registrarMensaje(heroe.getNombre() + " transfirió " + 
+                                                 item.getNombre() + " a " + destino.getNombre());
+                    } else {
+                        vista.mostrarMensaje("\n✗ No se pudo transferir el ítem. " +
+                                           "El inventario de " + destino.getNombre() + 
+                                           " puede estar lleno.");
+                    }
+                }
+            }
+        }
+        vista.pedirEnter();
+    }
+
+    private void mostrarDepositoComun() {
+        vista.mostrarMensaje("\n=== DEPÓSITO COMÚN ===");
+        if (inventario.estaVacio()) {
+            vista.mostrarMensaje("El depósito está vacío.");
+        } else {
+            for (int i = 1; i <= inventario.getTamanio(); i++) {
+                Item it = inventario.getItemPorIndice(i);
+                if (it != null) {
+                    vista.mostrarMensaje("  • " + it.getNombre() + " x" + inventario.getCantidad(it));
+                }
+            }
+        }
+        vista.pedirEnter();
+    }
+
+   
+
+    private void turnoMonstruo(Monstruo m) {
         if (m.getHP() <= 0) return;
         
         String nombreMonstruo = displayNombre(m);
